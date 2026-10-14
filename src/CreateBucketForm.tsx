@@ -18,7 +18,7 @@ const emptyForm = {
   classification: 'Internal',
 };
 
-export default function CreateBucketForm() {
+export default function CreateBucketForm({ onCreated }: { onCreated?: () => void }) {
   const [form, setForm] = useState(emptyForm);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
@@ -40,7 +40,10 @@ export default function CreateBucketForm() {
       setResult({ success: false, message: errors[0].message });
     } else {
       setResult(data ?? { success: false, message: 'No response from server.' });
-      if (data?.success) setForm(emptyForm);
+      if (data?.success) {
+        setForm(emptyForm);
+        onCreated?.(); // tell the admin page to refresh its list
+      }
     }
     setBusy(false);
   }

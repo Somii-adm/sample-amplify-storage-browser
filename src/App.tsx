@@ -10,7 +10,7 @@ import config from '../amplify_outputs.json';
 import { Amplify } from 'aws-amplify';
 import { fetchAuthSession } from 'aws-amplify/auth';
 import { Authenticator, Button, Flex } from '@aws-amplify/ui-react';
-import CreateBucketForm from './CreateBucketForm';
+import AdminPage from './AdminPage';
 
 Amplify.configure(config);
 
@@ -54,7 +54,7 @@ function Portal({ signOut }: { signOut?: () => void }) {
         </Flex>
       </div>
 
-      {view === 'files' ? <StorageBrowser /> : <CreateBucketForm />}
+      {view === 'files' ? <StorageBrowser /> : <AdminPage />}
     </>
   );
 }
