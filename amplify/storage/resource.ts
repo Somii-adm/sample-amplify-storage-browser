@@ -9,14 +9,14 @@ export const storage = defineStorage({
     ],
     'admin/*': [
         allow.groups(['admin']).to(['read', 'write', 'delete']),
-        allow.authenticated.to(['read'])
+        allow.authenticated.to(['read']),
     ],
     'finance/*': [
         allow.groups(['finance']).to(['read', 'write', 'delete']),
-        allow.groups(['admin']).to(['read'])
+        allow.groups(['admin']).to(['read']),
     ],
     'private/{entity_id}/*': [
-        allow.entity('identity').to(['read', 'write', 'delete'])
+        allow.entity('identity').to(['read', 'write', 'delete']),
     ]
    })
 });
@@ -32,7 +32,7 @@ export const secondaryStorage = defineStorage({
         allow.authenticated.to(['read'])
     ],
     'backup_private/{entity_id}/*': [
-        allow.entity('identity').to(['read', 'write', 'delete'])
+        allow.entity('identity').to(['read', 'write', 'delete']),
     ]
    })
 });
