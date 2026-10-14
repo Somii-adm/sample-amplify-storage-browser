@@ -1,5 +1,4 @@
 import { defineAuth } from '@aws-amplify/backend';
-import { createBucket } from '../functions/create-bucket/resource';
 
 /**
  * Define and configure your auth resource
@@ -10,5 +9,4 @@ export const auth = defineAuth({
     email: true,
   },
   groups: ['admin', 'finance'], //added finance group 
-  access: (allow) => [allow.resource(createBucket).to(['getUser'])]
 });

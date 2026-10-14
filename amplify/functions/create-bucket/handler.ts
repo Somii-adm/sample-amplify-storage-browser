@@ -34,7 +34,7 @@ async function emailFor(username: string): Promise<string>{
   try{
     const user = await cognito.send(
       new AdminGetUserCommand({
-        UserPoolId: env.AMPLIFY_AUTH_USERPOOL_ID,
+        UserPoolId: process.env.USER_POOL_ID,
         Username: username,
       })
     );

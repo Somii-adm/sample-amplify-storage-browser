@@ -42,3 +42,13 @@ backend.deleteBucket.resources.lambda.addToRolePolicy(
     resources: ['arn:aws:s3:::zifotest-*'],
   })
 );
+
+//loopup users
+const userPool = backend.auth.resources.userPool;
+backend.createBucket.resources.lambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ['cognito-idp:AdminGetUser'],
+    resources: [userPool.userPoolArn],
+  })
+);
+backend.createBucket.addEnvironment('USER_POOL_ID', userPool.userPoolId);
