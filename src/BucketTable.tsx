@@ -39,9 +39,11 @@ function Detail({ label, value }: { label: string; value?: string | null }) {
 export default function BucketTable({
   buckets,
   onDelete,
+  canDelete,
 }: {
   buckets: BucketRecord[];
   onDelete: (bucket: BucketRecord) => void;
+  canDelete: boolean;
 }) {
   const [search, setSearch] = useState('');
   const [bu, setBu] = useState('');
@@ -152,7 +154,7 @@ export default function BucketTable({
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  {!isDeleted(b) && (
+                  {canDelete &&!isDeleted(b) && (
                     <Button
                       size="small"
                       variation="destructive"

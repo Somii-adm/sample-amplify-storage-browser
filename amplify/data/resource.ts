@@ -1,6 +1,7 @@
 import { type ClientSchema, a, defineData } from '@aws-amplify/backend';
 import { createBucket } from '../functions/create-bucket/resource';
 import { deleteBucket } from '../functions/delete-bucket/resource';
+import { CAN_MANAGE_BUCKETS, CAN_VIEW_ADMIN } from '../roles';
 
 const schema = a
   .schema({
@@ -19,7 +20,7 @@ const schema = a
         deleteReason: a.string(),
 
       })
-      .authorization((allow) => [allow.group('admin')]),
+      .authorization((allow) =>  [allow.groups(CAN_VIEW_ADMIN).to(['read'])]),
 
     BucketResult: a.customType({
       success: a.boolean().required(),
@@ -37,7 +38,7 @@ const schema = a
         classification: a.string().required(),
       })
       .returns(a.ref('BucketResult'))
-      .authorization((allow) => [allow.group('admin')])
+      .authorization((allow) => [allow.groups(CAN_MANAGE_BUCKETS)])
       .handler(a.handler.function(createBucket)),
 
     deleteBucket: a
@@ -49,7 +50,7 @@ const schema = a
         reason: a.string().required(),
       })
       .returns(a.ref('BucketResult'))
-      .authorization((allow) => [allow.group('admin')])
+      .authorization((allow) => [allow.groups(CAN_MANAGE_BUCKETS)])
       .handler(a.handler.function(deleteBucket)),
   })
   // Let our two functions read and write the data (e.g. BucketRecord rows)

@@ -1,12 +1,11 @@
 import { defineAuth } from '@aws-amplify/backend';
+import { ALL_ROLES } from '../roles';
 
-/**
- * Define and configure your auth resource
- * @see https://docs.amplify.aws/gen2/build-a-backend/auth
- */
 export const auth = defineAuth({
   loginWith: {
     email: true,
   },
-  groups: ['admin', 'finance'], //added finance group 
+  // 'finance' stays for now because the storage folder rules use it.
+  // It goes away when the grants model replaces those rules.
+  groups: [...ALL_ROLES, 'finance'],
 });

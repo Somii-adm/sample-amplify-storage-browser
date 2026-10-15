@@ -4,11 +4,13 @@ import type { Schema } from '../amplify/data/resource';
 import { Alert, Button, Flex, Tabs } from '@aws-amplify/ui-react';
 import CreateBucketForm from './CreateBucketForm';
 import BucketTable from './BucketTable';
+import { CAN_MANAGE_BUCKETS, inAnyGroup } from '../amplify/roles';
 
 type BucketRecord = Schema['BucketRecord']['type'];
 
-export default function AdminPage() {
-  const [tab, setTab] = useState('create');
+export default function AdminPage({ groups }: { groups: string[] }) {
+  const canManageBuckets = inAnyGroup(groups, CAN_MANAGE_BUCKETS);
+  const [tab, setTab] = useState(canManageBuckets ? 'create' : 'buckets');
   const [buckets, setBuckets] = useState<BucketRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
@@ -81,19 +83,21 @@ export default function AdminPage() {
 
       <Tabs.Container value={tab} onValueChange={setTab}>
         <Tabs.List>
-          <Tabs.Item value="create">Create bucket</Tabs.Item>
+          {canManageBuckets && <Tabs.Item value="create">Create bucket</Tabs.Item>}
           <Tabs.Item value="buckets">Managed buckets</Tabs.Item>
         </Tabs.List>
 
-        <Tabs.Panel value="create">
-          <CreateBucketForm onCreated={loadBuckets} />
-        </Tabs.Panel>
+        {canManageBuckets && (
+          <Tabs.Panel value="create">
+            <CreateBucketForm onCreated={loadBuckets} />
+          </Tabs.Panel>
+        )}
 
         <Tabs.Panel value="buckets">
           <Flex justifyContent="flex-end" paddingBlock="0.5rem">
             <Button onClick={loadBuckets} isLoading={loading}>Refresh</Button>
           </Flex>
-          <BucketTable buckets={buckets} onDelete={remove} />
+          <BucketTable buckets={buckets} onDelete={remove} canDelete={canManageBuckets} />
         </Tabs.Panel>
       </Tabs.Container>
     </Flex>

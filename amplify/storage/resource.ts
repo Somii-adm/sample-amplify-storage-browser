@@ -6,20 +6,20 @@ export const storage = defineStorage({
    access: (allow) => ({
     'public/*': [
         allow.authenticated.to(['read', 'write', 'delete']),
-        allow.groups(['admin','finance']).to(['read', 'write', 'delete'])
+        allow.groups(['SuperAdmin', 'finance']).to(['read', 'write', 'delete'])
     ],
     'admin/*': [
-        allow.groups(['admin']).to(['read', 'write', 'delete']),
+        allow.groups(['SuperAdmin']).to(['read', 'write', 'delete']),
         allow.groups(['finance']).to(['read']),
         allow.authenticated.to(['read'])
     ],
     'finance/*': [
         allow.groups(['finance']).to(['read', 'write', 'delete']),
-        allow.groups(['admin']).to(['read'])
+        allow.groups(['SuperAdmin']).to(['read'])
     ],
     'private/{entity_id}/*': [
         allow.entity('identity').to(['read', 'write', 'delete']),
-        allow.groups(['admin','finance']).to(['read', 'write', 'delete'])
+        allow.groups(['SuperAdmin', 'finance']).to(['read', 'write', 'delete'])
     ]
    })
 });
@@ -31,7 +31,7 @@ export const secondaryStorage = defineStorage({
         allow.authenticated.to(['read', 'write', 'delete'])
     ],
     'backup_admin/*': [
-        allow.groups(['admin']).to(['read', 'write', 'delete']),
+        allow.groups(['SuperAdmin']).to(['read', 'write', 'delete']),
         allow.authenticated.to(['read'])
     ],
     'backup_private/{entity_id}/*': [

@@ -5,12 +5,19 @@ import { getAmplifyDataClientConfig } from '@aws-amplify/backend/function/runtim
 import { env } from '$amplify/env/delete-bucket';
 import { S3Client, DeleteBucketCommand } from '@aws-sdk/client-s3';
 import { emailFor } from '../shared/user-email';
+import { CAN_MANAGE_BUCKETS, inAnyGroup } from '../../roles';
 
 const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(env);
 Amplify.configure(resourceConfig, libraryOptions);
 const client = generateClient<Schema>();
 
 export const handler: Schema['deleteBucket']['functionHandler'] = async (event) => {
+
+  // Defence in depth: check the role here too, not only in the API
+  const callerGroups = (event.identity as { groups?: string[] | null } | null)?.groups;
+  if (!inAnyGroup(callerGroups, CAN_MANAGE_BUCKETS)) {
+    return { success: false, message: 'You are not allowed to manage buckets.' };
+  }
   const { bucketName, region, recordId, reason } = event.arguments;
 
   if (!bucketName.startsWith('zifotest-')) {

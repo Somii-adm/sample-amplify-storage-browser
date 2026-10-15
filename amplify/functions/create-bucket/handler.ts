@@ -4,6 +4,7 @@ import { generateClient } from 'aws-amplify/data';
 import { getAmplifyDataClientConfig } from '@aws-amplify/backend/function/runtime';
 import { env } from '$amplify/env/create-bucket';
 import { emailFor } from '../shared/user-email';
+import { CAN_MANAGE_BUCKETS, inAnyGroup } from '../../roles';
 import {
   S3Client,
   CreateBucketCommand,
@@ -30,6 +31,13 @@ const CLASSIFICATIONS = ['Public', 'Internal', 'Confidential', 'Restricted'];
 
 
 export const handler: Schema['createBucket']['functionHandler'] = async (event) => {
+  
+  // Defence in depth: check the role here too, not only in the API
+  const callerGroups = (event.identity as { groups?: string[] | null } | null)?.groups;
+  if (!inAnyGroup(callerGroups, CAN_MANAGE_BUCKETS)) {
+    return { success: false, message: 'You are not allowed to manage buckets.' };
+  }
+
   const { bucketName, region, owner, costCenter, businessUnit, classification } =
     event.arguments;
 

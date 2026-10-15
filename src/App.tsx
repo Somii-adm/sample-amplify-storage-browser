@@ -11,6 +11,7 @@ import { Amplify } from 'aws-amplify';
 import { fetchAuthSession } from 'aws-amplify/auth';
 import { Authenticator, Button, Flex } from '@aws-amplify/ui-react';
 import AdminPage from './AdminPage';
+import { CAN_VIEW_ADMIN, inAnyGroup } from '../amplify/roles';
 
 Amplify.configure(config);
 
@@ -19,22 +20,27 @@ const { StorageBrowser } = createStorageBrowser({
 });
 
 function Portal({ signOut }: { signOut?: () => void }) {
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [groups, setGroups] = useState<string[]>([]);
   const [view, setView] = useState<'files' | 'admin'>('files');
 
-  // Read the user's groups from their login token
+  // Read the user's groups (roles) from their login token
   useEffect(() => {
     fetchAuthSession().then((session) => {
-      const groups =
-        (session.tokens?.accessToken.payload['cognito:groups'] as string[] | undefined) ?? [];
-      setIsAdmin(groups.includes('admin'));
+      setGroups(
+        (session.tokens?.accessToken.payload['cognito:groups'] as string[] | undefined) ?? []
+      );
     });
   }, []);
+
+  const canViewAdmin = inAnyGroup(groups, CAN_VIEW_ADMIN);
 
   return (
     <>
       <div className="header">
-        <h1>S3 Self-Service Portal</h1>
+        <div>
+          <h1>S3 Self-Service Portal</h1>
+          <small>Role: {groups.length ? groups.join(', ') : 'none'}</small>
+        </div>
         <Flex gap="0.5rem">
           <Button
             variation={view === 'files' ? 'primary' : undefined}
@@ -42,7 +48,7 @@ function Portal({ signOut }: { signOut?: () => void }) {
           >
             Files
           </Button>
-          {isAdmin && (
+          {canViewAdmin && (
             <Button
               variation={view === 'admin' ? 'primary' : undefined}
               onClick={() => setView('admin')}
@@ -54,7 +60,7 @@ function Portal({ signOut }: { signOut?: () => void }) {
         </Flex>
       </div>
 
-      {view === 'files' ? <StorageBrowser /> : <AdminPage />}
+      {view === 'files' ? <StorageBrowser /> : <AdminPage groups={groups} />}
     </>
   );
 }
