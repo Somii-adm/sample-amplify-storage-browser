@@ -120,12 +120,15 @@ async function locationCredentials(identity: any, scope: string, permission: str
 
 // One function serves both API operations; AppSync tells us which one was called
 export const handler = async (event: any) => {
-  switch (event.info.fieldName) {
+  // Amplify sends the operation name as event.fieldName (AppSync's own format uses event.info.fieldName)
+  const fieldName = event.fieldName ?? event.info?.fieldName;
+  console.log('location-access called for:', fieldName); // shows up in CloudWatch logs
+  switch (fieldName) {
     case 'myLocations':
       return myLocations(event.identity);
     case 'locationCredentials':
       return locationCredentials(event.identity, event.arguments.scope, event.arguments.permission);
     default:
-      throw new Error(`Unknown operation: ${event.info.fieldName}`);
+      throw new Error(`Unknown operation: ${fieldName}`);
   }
 };
