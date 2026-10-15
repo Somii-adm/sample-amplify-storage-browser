@@ -1,6 +1,7 @@
 import { type ClientSchema, a, defineData } from '@aws-amplify/backend';
 import { createBucket } from '../functions/create-bucket/resource';
 import { deleteBucket } from '../functions/delete-bucket/resource';
+import { locationAccess } from '../functions/location-access/resource';
 import { CAN_MANAGE_BUCKETS, CAN_VIEW_ADMIN } from '../roles';
 
 const schema = a
@@ -68,9 +69,44 @@ const schema = a
       .returns(a.ref('BucketResult'))
       .authorization((allow) => [allow.groups(CAN_MANAGE_BUCKETS)])
       .handler(a.handler.function(deleteBucket)),
+       // ---- File access (used by the Storage Browser) ----
+    Location: a.customType({
+      id: a.string().required(),
+      bucket: a.string().required(),
+      prefix: a.string().required(),
+      type: a.string().required(),
+      permissions: a.string().array().required(),
+    }),
+
+    TempCredentials: a.customType({
+      accessKeyId: a.string().required(),
+      secretAccessKey: a.string().required(),
+      sessionToken: a.string().required(),
+      expiration: a.string().required(),
+    }),
+
+    myLocations: a
+      .query()
+      .returns(a.ref('Location').array())
+      .authorization((allow) => [allow.authenticated()]) // any signed-in user
+      .handler(a.handler.function(locationAccess)),
+
+    locationCredentials: a
+      .query()
+      .arguments({
+        scope: a.string().required(),
+        permission: a.string().required(),
+      })
+      .returns(a.ref('TempCredentials'))
+      .authorization((allow) => [allow.authenticated()])
+      .handler(a.handler.function(locationAccess)),
   })
   // Let our two functions read and write the data (e.g. BucketRecord rows)
-  .authorization((allow) => [allow.resource(createBucket), allow.resource(deleteBucket)]);
+  .authorization((allow) => [
+    allow.resource(createBucket),
+    allow.resource(deleteBucket),
+    allow.resource(locationAccess),
+  ]);
 
 export type Schema = ClientSchema<typeof schema>;
 

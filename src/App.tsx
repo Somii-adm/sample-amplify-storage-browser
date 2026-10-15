@@ -1,22 +1,71 @@
 import { useEffect, useState } from 'react';
-import {
-  createAmplifyAuthAdapter,
-  createStorageBrowser,
-} from '@aws-amplify/ui-react-storage/browser';
+import { createStorageBrowser } from '@aws-amplify/ui-react-storage/browser';
 import '@aws-amplify/ui-react-storage/styles.css';
 import './App.css';
 
 import config from '../amplify_outputs.json';
 import { Amplify } from 'aws-amplify';
 import { fetchAuthSession } from 'aws-amplify/auth';
+import { generateClient } from 'aws-amplify/data';
+import { Hub } from 'aws-amplify/utils';
 import { Authenticator, Button, Flex } from '@aws-amplify/ui-react';
-import AdminPage from './AdminPage';
+import type { Schema } from '../amplify/data/resource';
 import { CAN_VIEW_ADMIN, inAnyGroup } from '../amplify/roles';
+import AdminPage from './AdminPage';
 
 Amplify.configure(config);
 
+// The Storage Browser now gets its locations and credentials from OUR API,
+// which reads the AccessGrant table
 const { StorageBrowser } = createStorageBrowser({
-  config: createAmplifyAuthAdapter(),
+  config: {
+    region: 'ap-south-1',
+
+    // "Which locations can I see?"
+    listLocations: async () => {
+      const { data, errors } = await generateClient<Schema>().queries.myLocations();
+      if (errors?.length) throw new Error(errors[0].message);
+      return {
+        items: (data ?? [])
+          .filter((l) => l !== null)
+          .map((l) => ({
+            id: l!.id,
+            bucket: l!.bucket,
+            prefix: l!.prefix,
+            type: l!.type as 'BUCKET' | 'PREFIX',
+            permissions: l!.permissions.filter(Boolean) as ('delete' | 'get' | 'list' | 'write')[],
+          })),
+        nextToken: undefined,
+      };
+    },
+
+    // "Give me credentials for this location"
+    getLocationCredentials: async ({ scope, permission }) => {
+      const { data, errors } = await generateClient<Schema>().queries.locationCredentials({
+        scope,
+        permission,
+      });
+      if (errors?.length || !data) {
+        throw new Error(errors?.[0]?.message ?? 'Could not get credentials.');
+      }
+      return {
+        credentials: {
+          accessKeyId: data.accessKeyId,
+          secretAccessKey: data.secretAccessKey,
+          sessionToken: data.sessionToken,
+          expiration: new Date(data.expiration),
+        },
+      };
+    },
+
+    // On sign-out, tell the Storage Browser to forget the previous user
+    // (fixes the stale view when switching users)
+    registerAuthListener: (onAuthStateChange) => {
+      Hub.listen('auth', ({ payload }) => {
+        if (payload.event === 'signedOut') onAuthStateChange();
+      });
+    },
+  },
 });
 
 function Portal({ signOut }: { signOut?: () => void }) {
