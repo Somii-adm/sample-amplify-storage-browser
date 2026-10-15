@@ -1,20 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
 import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '../amplify/data/resource';
-import {
-  Alert, Button, Flex, Heading,
-  Table, TableBody, TableCell, TableHead, TableRow,
-} from '@aws-amplify/ui-react';
+import { Alert, Button, Flex, Tabs } from '@aws-amplify/ui-react';
 import CreateBucketForm from './CreateBucketForm';
+import BucketTable from './BucketTable';
 
 type BucketRecord = Schema['BucketRecord']['type'];
 
 export default function AdminPage() {
+  const [tab, setTab] = useState('create');
   const [buckets, setBuckets] = useState<BucketRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
 
-  // Load the list of portal-managed buckets
   const loadBuckets = useCallback(async () => {
     setLoading(true);
     try {
@@ -34,11 +32,21 @@ export default function AdminPage() {
   }, [loadBuckets]);
 
   async function remove(bucket: BucketRecord) {
-    // Make the admin type the name, so nobody deletes the wrong bucket by accident
     const typed = window.prompt(
       `This permanently deletes ${bucket.bucketName}.\nType the bucket name to confirm:`
     );
-    if (typed !== bucket.bucketName) return;
+    if (typed === null) return; // cancelled
+    if (typed !== bucket.bucketName) {
+      setResult({ success: false, message: 'Name did not match. Nothing was deleted.' });
+      return;
+    }
+
+    const reason = window.prompt('Why is this bucket being deleted? (recorded for audit)');
+    if (reason === null) return;
+    if (reason.trim().length < 5) {
+      setResult({ success: false, message: 'A reason (5+ characters) is required. Nothing was deleted.' });
+      return;
+    }
 
     try {
       const client = generateClient<Schema>();
@@ -46,6 +54,7 @@ export default function AdminPage() {
         bucketName: bucket.bucketName,
         region: bucket.region ?? 'ap-south-1',
         recordId: bucket.id,
+        reason: reason.trim(),
       });
       setResult(
         errors?.length
@@ -59,50 +68,34 @@ export default function AdminPage() {
   }
 
   return (
-    <Flex direction="column" gap="2rem" padding="1rem">
-      <CreateBucketForm onCreated={loadBuckets} />
+    <Flex direction="column" gap="1rem" padding="1rem">
+      {result && (
+        <Alert
+          variation={result.success ? 'success' : 'error'}
+          isDismissible
+          onDismiss={() => setResult(null)}
+        >
+          {result.message}
+        </Alert>
+      )}
 
-      <Flex direction="column" gap="1rem">
-        <Flex justifyContent="space-between" alignItems="center">
-          <Heading level={3}>Portal buckets</Heading>
-          <Button onClick={loadBuckets} isLoading={loading}>Refresh</Button>
-        </Flex>
+      <Tabs.Container value={tab} onValueChange={setTab}>
+        <Tabs.List>
+          <Tabs.Item value="create">Create bucket</Tabs.Item>
+          <Tabs.Item value="buckets">Managed buckets</Tabs.Item>
+        </Tabs.List>
 
-        {result && (
-          <Alert variation={result.success ? 'success' : 'error'}>{result.message}</Alert>
-        )}
+        <Tabs.Panel value="create">
+          <CreateBucketForm onCreated={loadBuckets} />
+        </Tabs.Panel>
 
-        <Table highlightOnHover>
-          <TableHead>
-            <TableRow>
-              <TableCell as="th">Bucket</TableCell>
-              <TableCell as="th">Owner</TableCell>
-              <TableCell as="th">Classification</TableCell>
-              <TableCell as="th">Created by</TableCell>
-              <TableCell as="th">Created</TableCell>
-              <TableCell as="th"></TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {buckets.map((b) => (
-              <TableRow key={b.id}>
-                <TableCell>{b.bucketName}</TableCell>
-                <TableCell>{b.owner}</TableCell>
-                <TableCell>{b.classification}</TableCell>
-                <TableCell>{b.createdBy}</TableCell>
-                <TableCell>{new Date(b.createdAt).toLocaleString()}</TableCell>
-                <TableCell>
-                  <Button size="small" variation="destructive" onClick={() => remove(b)}>
-                    Delete
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-
-        {buckets.length === 0 && !loading && <p>No portal-managed buckets yet.</p>}
-      </Flex>
+        <Tabs.Panel value="buckets">
+          <Flex justifyContent="flex-end" paddingBlock="0.5rem">
+            <Button onClick={loadBuckets} isLoading={loading}>Refresh</Button>
+          </Flex>
+          <BucketTable buckets={buckets} onDelete={remove} />
+        </Tabs.Panel>
+      </Tabs.Container>
     </Flex>
   );
 }

@@ -45,10 +45,12 @@ backend.deleteBucket.resources.lambda.addToRolePolicy(
 
 //loopup users
 const userPool = backend.auth.resources.userPool;
-backend.createBucket.resources.lambda.addToRolePolicy(
-  new PolicyStatement({
-    actions: ['cognito-idp:AdminGetUser'],
-    resources: [userPool.userPoolArn],
-  })
-);
-backend.createBucket.addEnvironment('USER_POOL_ID', userPool.userPoolId);
+for (const fn of [backend.createBucket, backend.deleteBucket]) {
+  fn.resources.lambda.addToRolePolicy(
+    new PolicyStatement({
+      actions: ['cognito-idp:AdminGetUser'],
+      resources: [userPool.userPoolArn],
+    })
+  );
+  fn.addEnvironment('USER_POOL_ID', userPool.userPoolId);
+}

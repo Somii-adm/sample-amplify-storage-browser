@@ -3,10 +3,7 @@ import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
 import { getAmplifyDataClientConfig } from '@aws-amplify/backend/function/runtime';
 import { env } from '$amplify/env/create-bucket';
-import {
-  CognitoIdentityProviderClient,
-  AdminGetUserCommand,
-} from '@aws-sdk/client-cognito-identity-provider';
+import { emailFor } from '../shared/user-email';
 import {
   S3Client,
   CreateBucketCommand,
@@ -28,21 +25,9 @@ const client = generateClient<Schema>();
 const ALLOWED_REGIONS = ['ap-south-1'];
 const NAME_PATTERN = /^zifotest-[a-z0-9]+-[a-z0-9]+-(dev|test|prod)$/;
 const CLASSIFICATIONS = ['Public', 'Internal', 'Confidential', 'Restricted'];
-const cognito = new CognitoIdentityProviderClient();
 
-async function emailFor(username: string): Promise<string>{
-  try{
-    const user = await cognito.send(
-      new AdminGetUserCommand({
-        UserPoolId: process.env.USER_POOL_ID,
-        Username: username,
-      })
-    );
-    return user.UserAttributes?.find((a) => a.Name === 'email')?.Value ?? username;
-  } catch {
-    return username;
-  }
-}
+
+
 
 export const handler: Schema['createBucket']['functionHandler'] = async (event) => {
   const { bucketName, region, owner, costCenter, businessUnit, classification } =
@@ -67,7 +52,7 @@ export const handler: Schema['createBucket']['functionHandler'] = async (event) 
 
   const s3 = new S3Client({ region });
   const identity = event.identity as { username?: string } | null;
-  const createdBy = identity?.username ? await emailFor(identity.username) : 'unknown';
+  const createdBy = await emailFor(identity?.username);
 
   // 2. Create the bucket
   try {
@@ -166,6 +151,7 @@ export const handler: Schema['createBucket']['functionHandler'] = async (event) 
     businessUnit,
     classification,
     createdBy,
+    status: 'Active',
   });
   if (recordErrors?.length) {
     // The bucket is fine; only the bookkeeping failed, so don't delete it

@@ -13,6 +13,11 @@ const schema = a
         businessUnit: a.string(),
         classification: a.string(),
         createdBy: a.string(),
+        status: a.string(),          // ‘Active’ or ‘Deleted’
+        deletedBy: a.string(),
+        deletedAt: a.datetime(),
+        deleteReason: a.string(),
+
       })
       .authorization((allow) => [allow.group('admin')]),
 
@@ -41,6 +46,7 @@ const schema = a
         bucketName: a.string().required(),
         region: a.string().required(),
         recordId: a.string().required(),
+        reason: a.string().required(),
       })
       .returns(a.ref('BucketResult'))
       .authorization((allow) => [allow.group('admin')])
