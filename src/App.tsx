@@ -39,12 +39,19 @@ const { StorageBrowser } = createStorageBrowser({
       };
     },
 
-    // "Give me credentials for this location"
-    getLocationCredentials: async ({ scope, permission }) => {
+    getLocationCredentials: async (location) => {
+      // The field name differs between library versions, so read it flexibly:
+      // some send `permission` ('READ' | 'WRITE' | 'READWRITE'), others a `permissions` list
+      const loc = location as { scope: string; permission?: string; permissions?: string[] };
+      const perms = (loc.permissions ?? []).map((p) => String(p).toLowerCase());
+      const permission =
+        loc.permission ?? (perms.some((p) => p.includes('write') || p === 'delete') ? 'READWRITE' : 'READ');
+
       const { data, errors } = await generateClient<Schema>().queries.locationCredentials({
-        scope,
+        scope: loc.scope,
         permission,
       });
+
       if (errors?.length || !data) {
         throw new Error(errors?.[0]?.message ?? 'Could not get credentials.');
       }
