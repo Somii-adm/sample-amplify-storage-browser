@@ -60,6 +60,19 @@ export const handler: Schema['deleteBucket']['functionHandler'] = async (event) 
       message: `Bucket ${bucketName} deleted, but updating its record failed: ${errors[0].message}`,
     };
   }
+  
+  // Revoke every active grant on this bucket (kept, not erased, for audit)
+  const { data: grants } = await client.models.AccessGrant.list({
+    filter: { bucketName: { eq: bucketName }, status: { eq: 'Active' } },
+  });
+  for (const g of grants ?? []) {
+    await client.models.AccessGrant.update({
+      id: g.id,
+      status: 'Revoked',
+      revokedBy: deletedBy,
+      revokedAt: new Date().toISOString(),
+    });
+  }
 
   return { success: true, message: `Bucket ${bucketName} deleted.` };
 };

@@ -168,6 +168,18 @@ export const handler: Schema['createBucket']['functionHandler'] = async (event) 
       message: `Bucket ${bucketName} created, but saving its record failed: ${recordErrors[0].message}`,
     };
   }
+  
+   // 5. The bucket owner automatically gets Full access to the whole bucket
+  await client.models.AccessGrant.create({
+    bucketName,
+    prefix: '',
+    granteeType: 'USER',
+    grantee: owner.trim().toLowerCase(), // store emails in lowercase so matching is reliable
+    level: 'Full',
+    status: 'Active',
+    grantedBy: createdBy,
+    reason: 'Bucket owner (automatic)',
+  });
 
   return { success: true, message: `Bucket ${bucketName} created in ${region}.` };
 };

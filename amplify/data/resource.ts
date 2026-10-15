@@ -22,6 +22,22 @@ const schema = a
       })
       .authorization((allow) =>  [allow.groups(CAN_VIEW_ADMIN).to(['read'])]),
 
+      // Who may access which bucket/folder, and at what level
+    AccessGrant: a
+      .model({
+        bucketName: a.string().required(),
+        prefix: a.string(), // '' = whole bucket, or e.g. 'reports/'
+        granteeType: a.string().required(), // 'USER' or 'GROUP'
+        grantee: a.string().required(), // user email or group name
+        level: a.string().required(), // 'Read' | 'ReadWrite' | 'Full'
+        status: a.string(), // 'Active' or 'Revoked'
+        grantedBy: a.string(),
+        reason: a.string(),
+        revokedBy: a.string(),
+        revokedAt: a.datetime(),
+      })
+      .authorization((allow) => [allow.groups(CAN_VIEW_ADMIN).to(['read'])]),
+
     BucketResult: a.customType({
       success: a.boolean().required(),
       message: a.string().required(),

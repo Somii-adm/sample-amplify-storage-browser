@@ -5,6 +5,7 @@ import { Alert, Button, Flex, Tabs } from '@aws-amplify/ui-react';
 import CreateBucketForm from './CreateBucketForm';
 import BucketTable from './BucketTable';
 import { CAN_MANAGE_BUCKETS, inAnyGroup } from '../amplify/roles';
+import AccessTab from './AccessTab';
 
 type BucketRecord = Schema['BucketRecord']['type'];
 
@@ -85,6 +86,7 @@ export default function AdminPage({ groups }: { groups: string[] }) {
         <Tabs.List>
           {canManageBuckets && <Tabs.Item value="create">Create bucket</Tabs.Item>}
           <Tabs.Item value="buckets">Managed buckets</Tabs.Item>
+          <Tabs.Item value="access">Access</Tabs.Item>
         </Tabs.List>
 
         {canManageBuckets && (
@@ -98,6 +100,10 @@ export default function AdminPage({ groups }: { groups: string[] }) {
             <Button onClick={loadBuckets} isLoading={loading}>Refresh</Button>
           </Flex>
           <BucketTable buckets={buckets} onDelete={remove} canDelete={canManageBuckets} />
+        </Tabs.Panel>
+        
+        <Tabs.Panel value="access">
+          <AccessTab />
         </Tabs.Panel>
       </Tabs.Container>
     </Flex>
