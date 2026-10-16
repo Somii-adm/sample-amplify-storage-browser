@@ -46,6 +46,11 @@ const schema = a
       message: a.string().required(),
     }),
 
+    AccessResult: a.customType({
+      success: a.boolean().required(),
+      message: a.string().required(),
+    }),
+
     createBucket: a
       .mutation()
       .arguments({
@@ -114,7 +119,7 @@ const schema = a
         level: a.string().required(),
         reason: a.string().required(),
       })
-      .returns(a.ref('BucketResult'))
+      .returns(a.ref('AccessResult'))
       .authorization((allow) => [allow.groups(CAN_MANAGE_ACCESS)])
       .handler(a.handler.function(manageAccess)),
 
@@ -124,7 +129,7 @@ const schema = a
         grantId: a.string().required(),
         reason: a.string().required(),
       })
-      .returns(a.ref('BucketResult'))
+      .returns(a.ref('AccessResult'))
       .authorization((allow) => [allow.groups(CAN_MANAGE_ACCESS)])
       .handler(a.handler.function(manageAccess)),
   })
