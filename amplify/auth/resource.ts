@@ -1,5 +1,5 @@
 import { defineAuth } from '@aws-amplify/backend';
-import { ALL_ROLES } from '../roles';
+import { ALL_ROLES, DATA_GROUPS } from '../roles';
 
 export const auth = defineAuth({
   loginWith: {
@@ -7,5 +7,5 @@ export const auth = defineAuth({
   },
   // 'finance' stays for now because the storage folder rules use it.
   // It goes away when the grants model replaces those rules.
-  groups: [...ALL_ROLES, 'finance'],
+  groups: [...ALL_ROLES, ...DATA_GROUPS],
 });

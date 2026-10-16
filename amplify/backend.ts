@@ -7,6 +7,7 @@ import { storage, secondaryStorage } from './storage/resource';
 import { createBucket } from './functions/create-bucket/resource';
 import { deleteBucket } from './functions/delete-bucket/resource';
 import { locationAccess } from './functions/location-access/resource';
+import { manageAccess } from './functions/manage-access/resource';
 
 const backend = defineBackend({
   auth,
@@ -16,6 +17,7 @@ const backend = defineBackend({
   createBucket,
   deleteBucket,
   locationAccess,
+  manageAccess,
 });
 
 // Only admins can create users; no self sign-up
@@ -48,7 +50,7 @@ backend.deleteBucket.resources.lambda.addToRolePolicy(
 
 // All three functions may look up users (to match emails)
 const userPool = backend.auth.resources.userPool;
-for (const fn of [backend.createBucket, backend.deleteBucket, backend.locationAccess]) {
+for (const fn of [backend.createBucket, backend.deleteBucket, backend.locationAccess, backend.manageAccess]) {
   fn.resources.lambda.addToRolePolicy(
     new PolicyStatement({
       actions: ['cognito-idp:AdminGetUser'],

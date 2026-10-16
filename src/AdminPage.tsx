@@ -103,7 +103,7 @@ export default function AdminPage({ groups }: { groups: string[] }) {
         </Tabs.Panel>
         
         <Tabs.Panel value="access">
-          <AccessTab />
+          <AccessTab groups={groups} />
         </Tabs.Panel>
       </Tabs.Container>
     </Flex>

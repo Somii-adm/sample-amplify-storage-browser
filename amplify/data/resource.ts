@@ -2,7 +2,8 @@ import { type ClientSchema, a, defineData } from '@aws-amplify/backend';
 import { createBucket } from '../functions/create-bucket/resource';
 import { deleteBucket } from '../functions/delete-bucket/resource';
 import { locationAccess } from '../functions/location-access/resource';
-import { CAN_MANAGE_BUCKETS, CAN_VIEW_ADMIN } from '../roles';
+import { manageAccess } from '../functions/manage-access/resource';
+import { CAN_MANAGE_ACCESS, CAN_MANAGE_BUCKETS, CAN_VIEW_ADMIN } from '../roles';
 
 const schema = a
   .schema({
@@ -36,6 +37,7 @@ const schema = a
         reason: a.string(),
         revokedBy: a.string(),
         revokedAt: a.datetime(),
+        revokeReason: a.string(),
       })
       .authorization((allow) => [allow.groups(CAN_VIEW_ADMIN).to(['read'])]),
 
@@ -69,7 +71,8 @@ const schema = a
       .returns(a.ref('BucketResult'))
       .authorization((allow) => [allow.groups(CAN_MANAGE_BUCKETS)])
       .handler(a.handler.function(deleteBucket)),
-       // ---- File access (used by the Storage Browser) ----
+    
+      // ---- File access (used by the Storage Browser) ----
     Location: a.customType({
       id: a.string().required(),
       bucket: a.string().required(),
@@ -100,12 +103,38 @@ const schema = a
       .returns(a.ref('TempCredentials'))
       .authorization((allow) => [allow.authenticated()])
       .handler(a.handler.function(locationAccess)),
+      // ---- Access management (SecurityAdmin, SuperAdmin) ----
+    grantAccess: a
+      .mutation()
+      .arguments({
+        bucketName: a.string().required(),
+        prefix: a.string(),
+        granteeType: a.string().required(),
+        grantee: a.string().required(),
+        level: a.string().required(),
+        reason: a.string().required(),
+      })
+      .returns(a.ref('BucketResult'))
+      .authorization((allow) => [allow.groups(CAN_MANAGE_ACCESS)])
+      .handler(a.handler.function(manageAccess)),
+
+    revokeAccess: a
+      .mutation()
+      .arguments({
+        grantId: a.string().required(),
+        reason: a.string().required(),
+      })
+      .returns(a.ref('BucketResult'))
+      .authorization((allow) => [allow.groups(CAN_MANAGE_ACCESS)])
+      .handler(a.handler.function(manageAccess)),
   })
+
   // Let our two functions read and write the data (e.g. BucketRecord rows)
   .authorization((allow) => [
     allow.resource(createBucket),
     allow.resource(deleteBucket),
     allow.resource(locationAccess),
+    allow.resource(manageAccess),
   ]);
 
 export type Schema = ClientSchema<typeof schema>;
