@@ -11,6 +11,7 @@ export const ALL_ROLES: string[] = [
 export const CAN_MANAGE_BUCKETS: string[] = ['SuperAdmin', 'StorageAdmin'];
 export const CAN_MANAGE_ACCESS: string[] = ['SuperAdmin', 'SecurityAdmin'];
 export const CAN_VIEW_ADMIN: string[] = ['SuperAdmin', 'StorageAdmin', 'SecurityAdmin', 'Auditor'];
+export const CAN_MANAGE_USERS: string[] = ['SuperAdmin'];
 export const DATA_GROUPS: string[] = ['finance'];
 
 // True if the user is in at least one of the allowed groups

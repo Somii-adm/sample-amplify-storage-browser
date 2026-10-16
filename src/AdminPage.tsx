@@ -4,13 +4,15 @@ import type { Schema } from '../amplify/data/resource';
 import { Alert, Button, Flex, Tabs } from '@aws-amplify/ui-react';
 import CreateBucketForm from './CreateBucketForm';
 import BucketTable from './BucketTable';
-import { CAN_MANAGE_BUCKETS, inAnyGroup } from '../amplify/roles';
+import { CAN_MANAGE_BUCKETS, CAN_MANAGE_USERS, inAnyGroup } from '../amplify/roles';
 import AccessTab from './AccessTab';
+import UsersTab from './UsersTab';
 
 type BucketRecord = Schema['BucketRecord']['type'];
 
 export default function AdminPage({ groups }: { groups: string[] }) {
   const canManageBuckets = inAnyGroup(groups, CAN_MANAGE_BUCKETS);
+  const canManageUsers = inAnyGroup(groups, CAN_MANAGE_USERS);
   const [tab, setTab] = useState(canManageBuckets ? 'create' : 'buckets');
   const [buckets, setBuckets] = useState<BucketRecord[]>([]);
   const [loading, setLoading] = useState(false);
@@ -87,6 +89,7 @@ export default function AdminPage({ groups }: { groups: string[] }) {
           {canManageBuckets && <Tabs.Item value="create">Create bucket</Tabs.Item>}
           <Tabs.Item value="buckets">Managed buckets</Tabs.Item>
           <Tabs.Item value="access">Access</Tabs.Item>
+          {canManageUsers && <Tabs.Item value="users">Users</Tabs.Item>}
         </Tabs.List>
 
         {canManageBuckets && (
@@ -105,6 +108,11 @@ export default function AdminPage({ groups }: { groups: string[] }) {
         <Tabs.Panel value="access">
           <AccessTab groups={groups} />
         </Tabs.Panel>
+        {canManageUsers && (
+          <Tabs.Panel value="users">
+            <UsersTab />
+          </Tabs.Panel>
+        )}
       </Tabs.Container>
     </Flex>
   );

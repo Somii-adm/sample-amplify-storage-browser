@@ -3,7 +3,8 @@ import { createBucket } from '../functions/create-bucket/resource';
 import { deleteBucket } from '../functions/delete-bucket/resource';
 import { locationAccess } from '../functions/location-access/resource';
 import { manageAccess } from '../functions/manage-access/resource';
-import { CAN_MANAGE_ACCESS, CAN_MANAGE_BUCKETS, CAN_VIEW_ADMIN } from '../roles';
+import { manageUsers } from '../functions/manage-users/resource';
+import { CAN_MANAGE_ACCESS, CAN_MANAGE_BUCKETS, CAN_MANAGE_USERS, CAN_VIEW_ADMIN } from '../roles';
 
 const schema = a
   .schema({
@@ -38,6 +39,17 @@ const schema = a
         revokedBy: a.string(),
         revokedAt: a.datetime(),
         revokeReason: a.string(),
+      })
+      .authorization((allow) => [allow.groups(CAN_VIEW_ADMIN).to(['read'])]),
+
+      // Audit trail of every user and role change
+    RoleChange: a
+      .model({
+        targetEmail: a.string().required(),
+        action: a.string().required(), // CreateUser | AddRole | RemoveRole | DisableUser | EnableUser
+        role: a.string(),
+        performedBy: a.string(),
+        reason: a.string(),
       })
       .authorization((allow) => [allow.groups(CAN_VIEW_ADMIN).to(['read'])]),
 
@@ -132,6 +144,63 @@ const schema = a
       .returns(a.ref('AccessResult'))
       .authorization((allow) => [allow.groups(CAN_MANAGE_ACCESS)])
       .handler(a.handler.function(manageAccess)),
+     
+     // ---- User management (SuperAdmin) ----
+    PortalUser: a.customType({
+      username: a.string().required(),
+      email: a.string().required(),
+      enabled: a.boolean().required(),
+      status: a.string().required(),
+      groups: a.string().array().required(),
+      createdAt: a.string().required(),
+    }),
+
+    UserResult: a.customType({
+      success: a.boolean().required(),
+      message: a.string().required(),
+      temporaryPassword: a.string(),
+    }),
+
+    listPortalUsers: a
+      .query()
+      .returns(a.ref('PortalUser').array())
+      .authorization((allow) => [allow.groups(CAN_MANAGE_USERS)])
+      .handler(a.handler.function(manageUsers)),
+
+    createPortalUser: a
+      .mutation()
+      .arguments({
+        email: a.string().required(),
+        roles: a.string().array().required(),
+        reason: a.string().required(),
+      })
+      .returns(a.ref('UserResult'))
+      .authorization((allow) => [allow.groups(CAN_MANAGE_USERS)])
+      .handler(a.handler.function(manageUsers)),
+
+    setUserRole: a
+      .mutation()
+      .arguments({
+        username: a.string().required(),
+        role: a.string().required(),
+        add: a.boolean().required(),
+        reason: a.string().required(),
+      })
+      .returns(a.ref('UserResult'))
+      .authorization((allow) => [allow.groups(CAN_MANAGE_USERS)])
+      .handler(a.handler.function(manageUsers)),
+
+    setUserEnabled: a
+      .mutation()
+      .arguments({
+        username: a.string().required(),
+        enabled: a.boolean().required(),
+        reason: a.string().required(),
+      })
+      .returns(a.ref('UserResult'))
+      .authorization((allow) => [allow.groups(CAN_MANAGE_USERS)])
+      .handler(a.handler.function(manageUsers)),
+ 
   })
 
   // Let our two functions read and write the data (e.g. BucketRecord rows)
@@ -140,6 +209,8 @@ const schema = a
     allow.resource(deleteBucket),
     allow.resource(locationAccess),
     allow.resource(manageAccess),
+    allow.resource(manageUsers),
+
   ]);
 
 export type Schema = ClientSchema<typeof schema>;

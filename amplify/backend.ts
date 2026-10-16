@@ -8,6 +8,7 @@ import { createBucket } from './functions/create-bucket/resource';
 import { deleteBucket } from './functions/delete-bucket/resource';
 import { locationAccess } from './functions/location-access/resource';
 import { manageAccess } from './functions/manage-access/resource';
+import { manageUsers } from './functions/manage-users/resource';
 
 const backend = defineBackend({
   auth,
@@ -18,6 +19,7 @@ const backend = defineBackend({
   deleteBucket,
   locationAccess,
   manageAccess,
+  manageUsers,
 });
 
 // Only admins can create users; no self sign-up
@@ -50,7 +52,13 @@ backend.deleteBucket.resources.lambda.addToRolePolicy(
 
 // All three functions may look up users (to match emails)
 const userPool = backend.auth.resources.userPool;
-for (const fn of [backend.createBucket, backend.deleteBucket, backend.locationAccess, backend.manageAccess]) {
+for (const fn of [
+  backend.createBucket,
+  backend.deleteBucket,
+  backend.locationAccess,
+  backend.manageAccess,
+  backend.manageUsers,
+]) {
   fn.resources.lambda.addToRolePolicy(
     new PolicyStatement({
       actions: ['cognito-idp:AdminGetUser'],
@@ -59,6 +67,23 @@ for (const fn of [backend.createBucket, backend.deleteBucket, backend.locationAc
   );
   fn.addEnvironment('USER_POOL_ID', userPool.userPoolId);
 }
+
+// manage-users: the extra Cognito permissions it needs, on this user pool only
+backend.manageUsers.resources.lambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: [
+      'cognito-idp:ListUsers',
+      'cognito-idp:ListUsersInGroup',
+      'cognito-idp:AdminCreateUser',
+      'cognito-idp:AdminAddUserToGroup',
+      'cognito-idp:AdminRemoveUserFromGroup',
+      'cognito-idp:AdminDisableUser',
+      'cognito-idp:AdminEnableUser',
+      'cognito-idp:AdminUserGlobalSignOut',
+    ],
+    resources: [userPool.userPoolArn],
+  })
+);
 
 // ---- File access ----
 // A role holding the MAXIMUM file access (zifotest-* buckets only).
