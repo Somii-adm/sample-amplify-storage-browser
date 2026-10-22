@@ -202,6 +202,15 @@ const schema = a
       .returns(a.ref('UserResult'))
       .authorization((allow) => [allow.groups(CAN_MANAGE_USERS)])
       .handler(a.handler.function(manageUsers)),
+      resetUserPassword: a
+      .mutation()
+      .arguments({
+        username: a.string().required(),
+        reason: a.string().required(),
+      })
+      .returns(a.ref('UserResult'))
+      .authorization((allow) => [allow.groups(CAN_MANAGE_USERS)])
+      .handler(a.handler.function(manageUsers)),
  
   })
 

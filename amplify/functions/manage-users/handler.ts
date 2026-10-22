@@ -14,6 +14,7 @@ import {
   AdminDisableUserCommand,
   AdminEnableUserCommand,
   AdminUserGlobalSignOutCommand,
+  AdminSetUserPasswordCommand,
   type UserType,
 } from '@aws-sdk/client-cognito-identity-provider';
 import { emailFor } from '../shared/user-email';
@@ -212,6 +213,39 @@ async function setUserEnabled(args: any, callerUsername: string, callerEmail: st
   return { success: true, message: `Disabled ${targetEmail} and signed them out.` };
 }
 
+async function resetUserPassword(args: any, callerUsername: string, callerEmail: string): Promise<Result> {
+  const reason = cleanReason(args.reason);
+  if (reason.length < 5) return fail('Please give a reason (at least 5 characters).');
+  if (args.username === callerUsername) {
+    return fail('To change your own password, use "Forgot your password?" on the sign-in screen.');
+  }
+
+  const targetEmail = await emailFor(args.username);
+  const temporaryPassword = makeTempPassword();
+
+  // Permanent: false = they must choose a new password at next sign-in
+  await cognito.send(
+    new AdminSetUserPasswordCommand({
+      UserPoolId: POOL,
+      Username: args.username,
+      Password: temporaryPassword,
+      Permanent: false,
+    })
+  );
+  // End their existing sessions so the old password can't keep them signed in
+  await cognito
+    .send(new AdminUserGlobalSignOutCommand({ UserPoolId: POOL, Username: args.username }))
+    .catch(() => {});
+  await audit({ targetEmail, action: 'ResetPassword', performedBy: callerEmail, reason });
+
+  return {
+    success: true,
+    message: `Password reset for ${targetEmail}. Share the temporary password securely; they must change it at next sign-in.`,
+    temporaryPassword,
+  };
+}
+
+
 export const handler = async (event: any) => {
   const fieldName = event.fieldName ?? event.info?.fieldName;
 
@@ -234,6 +268,8 @@ export const handler = async (event: any) => {
         return await setUserRole(event.arguments, callerUsername, callerEmail);
       case 'setUserEnabled':
         return await setUserEnabled(event.arguments, callerUsername, callerEmail);
+      case 'resetUserPassword':
+        return await resetUserPassword(event.arguments, callerUsername, callerEmail);
       default:
         return fail(`Unknown operation: ${fieldName}`);
     }

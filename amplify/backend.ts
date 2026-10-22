@@ -80,6 +80,7 @@ backend.manageUsers.resources.lambda.addToRolePolicy(
       'cognito-idp:AdminDisableUser',
       'cognito-idp:AdminEnableUser',
       'cognito-idp:AdminUserGlobalSignOut',
+      'cognito-idp:AdminSetUserPassword',
     ],
     resources: [userPool.userPoolArn],
   })
