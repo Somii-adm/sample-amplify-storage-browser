@@ -40,6 +40,8 @@ const schema = a
         revokedAt: a.datetime(),
         revokeReason: a.string(),
       })
+      //index for DDB
+      .secondaryIndexes((index) => [index('grantee').queryField('listGrantsByGrantee')])
       .authorization((allow) => [allow.groups(CAN_VIEW_ADMIN).to(['read'])]),
 
       // Audit trail of every user and role change

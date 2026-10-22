@@ -59,12 +59,20 @@ async function grantAccess(args: any, callerEmail: string): Promise<Result> {
     return fail('That bucket is not an active portal bucket.');
   }
 
-  // No duplicate active grants
-  const { data: existing } = await client.models.AccessGrant.list({
-    filter: { bucketName: { eq: args.bucketName }, status: { eq: 'Active' } },
-    limit: 1000,
-  });
-  const duplicate = (existing ?? []).find(
+// Read every page so the duplicate check can't miss anything
+  const existing: Schema['AccessGrant']['type'][] = [];
+  let nextToken: string | null | undefined;
+  do {
+    const page = await client.models.AccessGrant.list({
+      filter: { bucketName: { eq: args.bucketName }, status: { eq: 'Active' } },
+      nextToken,
+    });
+    existing.push(...(page.data ?? []));
+    nextToken = page.nextToken;
+  } while (nextToken);
+
+  const duplicate = existing.find(
+
     (g) =>
       (g.prefix ?? '') === prefix &&
       g.granteeType === args.granteeType &&

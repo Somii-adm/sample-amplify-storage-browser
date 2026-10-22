@@ -62,10 +62,19 @@ export const handler: Schema['deleteBucket']['functionHandler'] = async (event) 
   }
   
   // Revoke every active grant on this bucket (kept, not erased, for audit)
-  const { data: grants } = await client.models.AccessGrant.list({
-    filter: { bucketName: { eq: bucketName }, status: { eq: 'Active' } },
-  });
-  for (const g of grants ?? []) {
+  // Read every page so no grant is missed
+  const grants: Schema['AccessGrant']['type'][] = [];
+  let nextToken: string | null | undefined;
+  do {
+    const page = await client.models.AccessGrant.list({
+      filter: { bucketName: { eq: bucketName }, status: { eq: 'Active' } },
+      nextToken,
+    });
+    grants.push(...(page.data ?? []));
+    nextToken = page.nextToken;
+  } while (nextToken);
+
+  for (const g of grants) {
     await client.models.AccessGrant.update({
       id: g.id,
       status: 'Revoked',

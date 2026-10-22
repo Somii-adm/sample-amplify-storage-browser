@@ -29,22 +29,41 @@ const LEVEL_ACTIONS: Record<string, string[]> = {
 
 type Grant = { bucketName: string; prefix: string; level: string };
 
-// Every active grant that applies to this caller: by their email OR any of their groups
+// All grants for one grantee (a user's email or a group name), using the index.
+// DynamoDB returns results in pages, so keep asking until there are no more.
+async function grantsForGrantee(grantee: string) {
+  const all: Schema['AccessGrant']['type'][] = [];
+  let nextToken: string | null | undefined;
+  do {
+    const { data, nextToken: next } = await client.models.AccessGrant.listGrantsByGrantee(
+      { grantee },
+      { nextToken }
+    );
+    all.push(...(data ?? []));
+    nextToken = next;
+  } while (nextToken);
+  return all;
+}
+
+// Every active grant that applies to this caller: their email + each of their groups
 async function grantsFor(identity: any): Promise<Grant[]> {
   const email = (await emailFor(identity?.username)).toLowerCase();
   const groups: string[] = identity?.groups ?? [];
-  const { data } = await client.models.AccessGrant.list({
-    filter: { status: { eq: 'Active' } },
-    limit: 1000,
-  });
-  return (data ?? [])
+
+  // One index lookup per email/group, run in parallel
+  const results = await Promise.all([email, ...groups].map(grantsForGrantee));
+
+  return results
+    .flat()
     .filter(
       (g) =>
-        (g.granteeType === 'USER' && g.grantee === email) ||
-        (g.granteeType === 'GROUP' && groups.includes(g.grantee))
+        g.status !== 'Revoked' &&
+        ((g.granteeType === 'USER' && g.grantee === email) ||
+          (g.granteeType === 'GROUP' && groups.includes(g.grantee)))
     )
     .map((g) => ({ bucketName: g.bucketName, prefix: g.prefix ?? '', level: g.level }));
 }
+
 
 // "Which locations can I see?" If several grants cover the same place, keep the strongest
 async function myLocations(identity: any) {
