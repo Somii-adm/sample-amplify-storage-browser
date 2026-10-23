@@ -74,7 +74,9 @@ See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more inform
 
 This library is licensed under the MIT-0 License. See the LICENSE file.
 
-## note
+## somi notes
 if you upgrade @aws-amplify\ui-react-storage, copy the file to public\amplify-storage-download as well.
+
+The Storage Browser setup (src/storageBrowser.tsx) moves out of src/App.tsx into its own file, because the share-link screen needs to import from it. If it stayed in app.tsx, the two files would import each other which breaks things. 
 
 _These sample applications are provided as a reference to help get started easily and are not supported by AWS Support._
