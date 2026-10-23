@@ -74,5 +74,7 @@ See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more inform
 
 This library is licensed under the MIT-0 License. See the LICENSE file.
 
+## note
+if you upgrade @aws-amplify\ui-react-storage, copy the file to public\amplify-storage-download as well.
 
 _These sample applications are provided as a reference to help get started easily and are not supported by AWS Support._
